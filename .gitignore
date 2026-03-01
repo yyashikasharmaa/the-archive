@@ -1,0 +1,27 @@
+
+# Secret keys — NEVER upload these
+backend/.env
+
+# Virtual environment — too large to upload
+backend/venv/
+backend/.venv/
+backend/.venv-1/
+
+# ChromaDB database — rebuilt from documents
+backend/chroma_data/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+
+# VS Code settings
+.vscode/
+
+# Windows system files
+Thumbs.db
+desktop.ini
+
+# Mac system files
+.DS_Store

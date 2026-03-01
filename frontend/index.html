@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>THE ARCHIVE — Epstein Files Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Share+Tech+Mono&family=Oswald:wght@200;300;400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── RESET & ROOT ─────────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --black:       #000000;
+      --deep:        #060608;
+      --charcoal:    #0d0d10;
+      --panel:       #111116;
+      --border:      rgba(255,255,255,0.07);
+      --red:         #8b1a1a;
+      --red-bright:  #c0392b;
+      --red-glow:    rgba(139,26,26,0.4);
+      --white:       #e8e4dc;
+      --dim:         #7a7570;
+      --gold:        #b8a882;
+      --mono:        'Share Tech Mono', monospace;
+      --serif:       'Cormorant Garamond', serif;
+      --sans:        'Oswald', sans-serif;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--black);
+      color: var(--white);
+      font-family: var(--serif);
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* ── CUSTOM SCROLLBAR ─────────────────────────────────── */
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: var(--black); }
+    ::-webkit-scrollbar-thumb { background: var(--red); }
+
+    /* ── BACKGROUND SYSTEM ────────────────────────────────── */
+    #bg-container {
+      position: fixed; inset: 0; z-index: 0;
+      overflow: hidden;
+    }
+
+    /* Video background — user places their own video file */
+    #bg-video {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      opacity: 0.50;
+      filter: contrast(1.1) brightness(0.8);
+      transform: scale(1.05);
+      animation: slowZoom 30s ease-in-out infinite alternate;
+    }
+
+    @keyframes slowZoom {
+      from { transform: scale(1.05); }
+      to   { transform: scale(1.15); }
+    }
+
+    /* CSS fallback background when no video */
+    #bg-fallback {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 50%, rgba(80,10,10,0.3) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(20,20,40,0.4) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 100%, rgba(10,10,20,0.8) 0%, transparent 60%),
+        linear-gradient(180deg, #000 0%, #06060a 50%, #000 100%);
+      animation: bgPulse 12s ease-in-out infinite alternate;
+    }
+
+    @keyframes bgPulse {
+      0%   { opacity: 0.8; }
+      50%  { opacity: 1; }
+      100% { opacity: 0.9; }
+    }
+
+    /* Film grain overlay */
+    #grain {
+      position: fixed; inset: 0; z-index: 1;
+      pointer-events: none;
+      opacity: 0.045;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+      background-size: 180px 180px;
+      animation: grainShift 0.5s steps(2) infinite;
+    }
+
+    @keyframes grainShift {
+      0%   { background-position: 0 0; }
+      25%  { background-position: -20px 10px; }
+      50%  { background-position: 10px -15px; }
+      75%  { background-position: -5px 20px; }
+      100% { background-position: 15px -5px; }
+    }
+
+    /* Vignette */
+    #vignette {
+      position: fixed; inset: 0; z-index: 2;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center,
+        transparent 40%,
+        rgba(0,0,0,0.6) 75%,
+        rgba(0,0,0,0.92) 100%
+      );
+    }
+
+    /* Scan lines */
+    #scanlines {
+      position: fixed; inset: 0; z-index: 3;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+      );
+    }
+
+    /* ── MAIN LAYOUT ──────────────────────────────────────── */
+    #app {
+      position: relative; z-index: 10;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 20px 80px;
+    }
+
+    /* ── TOP BAR ──────────────────────────────────────────── */
+    #topbar {
+      width: 100%; max-width: 900px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 28px 0 0;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 18px;
+      animation: fadeDown 1s ease forwards;
+      opacity: 0;
+      animation-delay: 0.2s;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    #topbar .classification {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      color: var(--red-bright);
+      text-transform: uppercase;
+    }
+
+    #topbar .case-id {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--dim);
+    }
+
+    /* ── HERO HEADER ──────────────────────────────────────── */
+    #hero {
+      width: 100%; max-width: 900px;
+      text-align: center;
+      padding: 60px 0 50px;
+      animation: fadeUp 1.2s ease forwards;
+      opacity: 0;
+      animation-delay: 0.5s;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.4em;
+      color: var(--red-bright);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    h1 {
+      font-family: var(--sans);
+      font-weight: 200;
+      font-size: clamp(3rem, 8vw, 6.5rem);
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: var(--white);
+      line-height: 1;
+      margin-bottom: 8px;
+      text-shadow: 0 0 60px rgba(139,26,26,0.25);
+    }
+
+    .subtitle {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: clamp(0.9rem, 2vw, 1.1rem);
+      color: var(--dim);
+      letter-spacing: 0.08em;
+      margin-top: 16px;
+    }
+
+    .divider {
+      width: 60px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--red), transparent);
+      margin: 24px auto;
+    }
+
+    /* ── SEARCH AREA ──────────────────────────────────────── */
+    #search-section {
+      width: 100%; max-width: 740px;
+      animation: fadeUp 1.2s ease forwards;
+      opacity: 0;
+      animation-delay: 0.9s;
+    }
+
+    .search-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      color: var(--dim);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    #search-wrapper {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+      border: 1px solid rgba(139,26,26,0.4);
+      background: rgba(6,6,8,0.85);
+      backdrop-filter: blur(12px);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    #search-wrapper:focus-within {
+      border-color: var(--red-bright);
+      box-shadow:
+        0 0 0 1px rgba(192,57,43,0.15),
+        0 0 30px rgba(139,26,26,0.2),
+        inset 0 0 20px rgba(0,0,0,0.5);
+    }
+
+    #search-wrapper::before {
+      content: '›';
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--mono);
+      font-size: 18px;
+      color: var(--red-bright);
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    #question-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 20px 20px 20px 46px;
+      font-family: var(--serif);
+      font-size: 1.05rem;
+      color: var(--white);
+      letter-spacing: 0.02em;
+      caret-color: var(--red-bright);
+    }
+
+    #question-input::placeholder {
+      color: rgba(122,117,112,0.5);
+      font-style: italic;
+    }
+
+    #submit-btn {
+      background: var(--red);
+      border: none;
+      padding: 0 28px;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.25em;
+      color: rgba(232,228,220,0.8);
+      text-transform: uppercase;
+      transition: background 0.2s, color 0.2s;
+      white-space: nowrap;
+      border-left: 1px solid rgba(139,26,26,0.6);
+    }
+
+    #submit-btn:hover {
+      background: var(--red-bright);
+      color: var(--white);
+    }
+
+    #submit-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ── LOADING STATE ────────────────────────────────────── */
+    #loading {
+      display: none;
+      width: 100%; max-width: 740px;
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    #loading.visible { display: block; }
+
+    .loading-text {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.3em;
+      color: var(--red-bright);
+      text-transform: uppercase;
+      animation: blink 1.4s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.2; }
+    }
+
+    .loading-bar {
+      width: 100%;
+      height: 1px;
+      background: rgba(139,26,26,0.2);
+      margin-top: 16px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .loading-bar::after {
+      content: '';
+      position: absolute;
+      left: -40%;
+      top: 0;
+      width: 40%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, var(--red-bright), transparent);
+      animation: loadingSlide 1.6s ease-in-out infinite;
+    }
+
+    @keyframes loadingSlide {
+      from { left: -40%; }
+      to   { left: 140%; }
+    }
+
+    /* ── RESULTS AREA ─────────────────────────────────────── */
+    #results {
+      display: none;
+      width: 100%; max-width: 740px;
+      margin-top: 50px;
+      animation: fadeUp 0.8s ease forwards;
+    }
+
+    #results.visible { display: block; }
+
+    /* Answer panel */
+    .answer-panel {
+      border: 1px solid var(--border);
+      background: rgba(8,8,10,0.9);
+      backdrop-filter: blur(10px);
+      padding: 36px 40px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .answer-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: linear-gradient(180deg, var(--red-bright), transparent);
+    }
+
+    .panel-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.35em;
+      color: var(--red-bright);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    #answer-text {
+      font-family: var(--serif);
+      font-size: 1.15rem;
+      line-height: 1.85;
+      color: var(--white);
+      letter-spacing: 0.01em;
+      min-height: 40px;
+    }
+
+    /* Typewriter cursor */
+    .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      background: var(--red-bright);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: cursorBlink 0.8s steps(1) infinite;
+    }
+
+    @keyframes cursorBlink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    /* Sources panel */
+    .sources-panel {
+      border: 1px solid var(--border);
+      background: rgba(8,8,10,0.9);
+      padding: 24px 40px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .sources-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: linear-gradient(180deg, var(--gold), transparent);
+    }
+
+    #sources-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #sources-list li {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #sources-list li::before {
+      content: '📄';
+      font-size: 13px;
+    }
+
+    /* Excerpts panel */
+    .excerpts-panel {
+      border: 1px solid var(--border);
+      background: rgba(8,8,10,0.9);
+      padding: 24px 40px;
+    }
+
+    .excerpts-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+    }
+
+    .excerpt-item {
+      position: relative;
+      border: 1px solid rgba(255,255,255,0.04);
+      background: rgba(0,0,0,0.4);
+      padding: 20px 24px;
+      margin-top: 16px;
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      line-height: 1.75;
+      color: rgba(232,228,220,0.55);
+      letter-spacing: 0.02em;
+      max-height: 140px;
+      overflow: hidden;
+      position: relative;
+      transition: max-height 0.4s ease, color 0.3s;
+      cursor: pointer;
+    }
+
+    .excerpt-item::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 50px;
+      background: linear-gradient(transparent, rgba(8,8,10,0.95));
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .excerpt-item.expanded {
+      max-height: 600px;
+      color: rgba(232,228,220,0.7);
+    }
+
+    .excerpt-item.expanded::after { opacity: 0; }
+
+    .excerpt-num {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--dim);
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    /* ── FOOTER ───────────────────────────────────────────── */
+    #footer {
+      width: 100%; max-width: 900px;
+      margin-top: 80px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      opacity: 0;
+      animation: fadeUp 1s ease forwards;
+      animation-delay: 1.4s;
+    }
+
+    #footer p {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--dim);
+      text-transform: uppercase;
+    }
+
+    /* ── VIDEO INSTRUCTION OVERLAY ────────────────────────── */
+    #video-hint {
+      position: fixed;
+      bottom: 20px; right: 20px;
+      z-index: 100;
+      background: rgba(0,0,0,0.85);
+      border: 1px solid var(--border);
+      padding: 14px 18px;
+      max-width: 260px;
+      font-family: var(--mono);
+      font-size: 10px;
+      line-height: 1.7;
+      color: var(--dim);
+      letter-spacing: 0.05em;
+      animation: fadeUp 1s ease forwards;
+      animation-delay: 2s;
+      opacity: 0;
+    }
+
+    #video-hint strong {
+      color: var(--gold);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    #video-hint button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      padding: 5px 10px;
+      margin-top: 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    #video-hint button:hover { color: var(--white); border-color: rgba(255,255,255,0.2); }
+
+    /* ── MOBILE ───────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      h1 { letter-spacing: 0.2em; }
+      .answer-panel, .sources-panel, .excerpts-panel { padding: 24px 20px; }
+      #submit-btn { padding: 0 18px; font-size: 9px; }
+      #topbar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── BACKGROUND ──────────────────────────────────── -->
+<div id="bg-container">
+  <!--
+    TO ADD YOUR OWN VIDEO:
+    1. Download a dark cinematic video from pexels.com/videos
+       (search: "dark noir" or "dark abstract")
+    2. Save it as "bg.mp4" in the same folder as this index.html
+    3. Uncomment the video tag below
+  -->
+  
+  <video id="bg-video" autoplay muted loop playsinline>
+    <source src="bg.mp4" type="video/mp4">
+  </video>
+
+  <div id="bg-fallback"></div>
+</div>
+
+<div id="grain"></div>
+<div id="vignette"></div>
+<div id="scanlines"></div>
+
+<!-- ── APP ─────────────────────────────────────────── -->
+<div id="app">
+
+  <!-- Top Bar -->
+  <div id="topbar">
+    <span class="classification">⬛ Classified — Court Records</span>
+    <span class="case-id">Case No. 18-CR-217 · SDNY</span>
+  </div>
+
+  <!-- Hero -->
+  <div id="hero">
+    <span class="eyebrow">Federal Court Document Intelligence</span>
+    <h1>The Archive</h1>
+    <div class="divider"></div>
+    <p class="subtitle">
+      Interrogate the publicly released Epstein court documents.<br>
+      Every answer is grounded in the record. Nothing more.
+    </p>
+  </div>
+
+  <!-- Search -->
+  <div id="search-section">
+    <span class="search-label">Query the archive</span>
+    <div id="search-wrapper">
+      <input
+        type="text"
+        id="question-input"
+        placeholder="What does the record show..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="submit-btn" onclick="askQuestion()">Retrieve</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <p class="loading-text">Searching the archive...</p>
+    <div class="loading-bar"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+
+    <!-- Answer -->
+    <div class="answer-panel">
+      <div class="panel-label">Intelligence Summary</div>
+      <div id="answer-text"></div>
+    </div>
+
+    <!-- Sources -->
+    <div class="sources-panel">
+      <div class="panel-label">Source Documents</div>
+      <ul id="sources-list"></ul>
+    </div>
+
+    <!-- Excerpts -->
+    <div class="excerpts-panel">
+      <div class="panel-label">Retrieved Excerpts — click to expand</div>
+      <div id="chunks-list"></div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div id="footer">
+    <p>The Archive — Document Intelligence System</p>
+    <p>Sources: Publicly released federal court records</p>
+  </div>
+
+</div>
+
+<!-- ── JAVASCRIPT ───────────────────────────────────── -->
+<script>
+  // ── CONFIG ──────────────────────────────────────────
+  // Change this URL when you deploy your backend
+  // Locally it's http://127.0.0.1:8000
+  // After deployment it'll be https://your-app.onrender.com
+  const API_URL = "http://127.0.0.1:8000";
+
+  <video id="bg-video" autoplay muted loop playsinline>
+  <source src="bg.mp4" type="video/mp4">
+</video>
+
+  // ── ELEMENTS ────────────────────────────────────────
+  const input      = document.getElementById('question-input');
+  const btn        = document.getElementById('submit-btn');
+  const loading    = document.getElementById('loading');
+  const results    = document.getElementById('results');
+  const answerEl   = document.getElementById('answer-text');
+  const sourcesList= document.getElementById('sources-list');
+  const chunksList = document.getElementById('chunks-list');
+
+  // ── ENTER KEY ────────────────────────────────────────
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') askQuestion();
+  });
+
+  // ── TYPEWRITER EFFECT ────────────────────────────────
+  function typeWriter(element, text, speed = 18) {
+    element.innerHTML = '';
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    element.appendChild(cursor);
+
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        // Insert text before the cursor
+        cursor.insertAdjacentText('beforebegin', text[i]);
+        i++;
+      } else {
+        clearInterval(interval);
+        // Remove cursor after typing finishes
+        setTimeout(() => cursor.remove(), 2000);
+      }
+    }, speed);
+  }
+
+  // ── MAIN ASK FUNCTION ────────────────────────────────
+  async function askQuestion() {
+    const question = input.value.trim();
+
+    // Validate
+    if (!question) {
+      input.focus();
+      input.style.borderColor = 'var(--red-bright)';
+      setTimeout(() => input.style.borderColor = '', 1000);
+      return;
+    }
+
+    // Show loading, hide results
+    btn.disabled = true;
+    loading.classList.add('visible');
+    results.classList.remove('visible');
+
+    try {
+      // ── Call your FastAPI backend ──
+      const response = await fetch(`${API_URL}/ask`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Server error');
+      }
+
+      const data = await response.json();
+
+      // ── Render answer with typewriter ──
+      answerEl.innerHTML = '';
+      typeWriter(answerEl, data.answer, 16);
+
+      // ── Render sources ──
+      sourcesList.innerHTML = '';
+      data.sources.forEach(source => {
+        const li = document.createElement('li');
+        li.textContent = source;
+        sourcesList.appendChild(li);
+      });
+
+      // ── Render excerpts ──
+      chunksList.innerHTML = '';
+      data.retrieved_chunks.forEach((chunk, i) => {
+        const div = document.createElement('div');
+        div.className = 'excerpt-item';
+        div.innerHTML = `
+          <span class="excerpt-num">EXHIBIT ${String(i+1).padStart(2,'0')}</span>
+          ${chunk}
+        `;
+        div.addEventListener('click', () => div.classList.toggle('expanded'));
+        chunksList.appendChild(div);
+      });
+
+      // ── Show results ──
+      results.classList.add('visible');
+      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (error) {
+      // Show error in answer area
+      results.classList.add('visible');
+      answerEl.innerHTML = `
+        <span style="color:var(--red-bright); font-family:var(--mono); font-size:0.85rem; letter-spacing:0.1em;">
+          ⚠ ${error.message}
+        </span>
+      `;
+      sourcesList.innerHTML = '';
+      chunksList.innerHTML = '';
+    } finally {
+      loading.classList.remove('visible');
+      btn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
