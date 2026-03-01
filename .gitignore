@@ -25,3 +25,11 @@ desktop.ini
 
 # Mac system files
 .DS_Store
+
+# Raw PDF files (large, can be re-downloaded)
+data/raw/
+
+# Processed pipeline outputs (can be regenerated)
+data/processed/
+data/cleaned/
+data/chunked/
