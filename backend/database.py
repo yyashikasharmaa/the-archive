@@ -1,23 +1,19 @@
 # database.py
-# Creates a shared ChromaDB connection that saves to disk
-# Other files import 'collection' from here
-
 import chromadb
+from chromadb.utils import embedding_functions
 from pathlib import Path
 
-# Path where ChromaDB saves its files
 BASE_DIR = Path(__file__).parent
 CHROMA_DIR = str(BASE_DIR / "chroma_data")
 
-# Create persistent client (saves to disk)
 chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
 
-# Create or connect to collection
+default_ef = embedding_functions.DefaultEmbeddingFunction()
+
 collection = chroma_client.get_or_create_collection(
     name="epstein_docs",
+    embedding_function=default_ef,
     metadata={"hnsw:space": "cosine"}
 )
 
-print(f"📂 ChromaDB location: {CHROMA_DIR}")
-print(f"✅ Connected to collection: epstein_docs")
-print(f"📊 Documents in database: {collection.count()}")
+print(f"✅ ChromaDB connected. Documents: {collection.count()}")
