@@ -4,3 +4,6 @@ chromadb==1.5.1
 groq
 python-dotenv==1.2.1
 pydantic==2.12.5
+pypdf
+pdf2image
+pytesseract
