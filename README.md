@@ -4,6 +4,16 @@
 
 **Live application:** https://the-archive-seven.vercel.app
 
+## Product Interface
+
+<p align="center">
+  <img src="docs/screenshots/Screenshot%20from%202026-09-01%2011-54-42.png" alt="The Archive deployed investigative research interface" width="1000">
+</p>
+
+The deployed frontend uses a custom investigative-record aesthetic rather than a stock chat interface. It is intentionally single-purpose: users submit a research question, the backend retrieves semantically relevant passages, and the generation layer is constrained to those retrieved records.
+
+> **Deployment note:** the public site currently showcases the application interface and architecture, but the complete document corpus and persistent vector index are not bundled with the hosted deployment because of storage/compute constraints. The repository contains the ingestion, OCR, cleaning, chunking, indexing, retrieval, API, and grounded-generation code needed to rebuild the knowledge base locally.
+
 ## Why This Project Exists
 
 Large legal-document collections are difficult to investigate manually: records span many pages, terminology varies, scanned PDFs require OCR, and ordinary keyword search misses semantically related passages.
@@ -11,12 +21,6 @@ Large legal-document collections are difficult to investigate manually: records 
 **The Archive** builds an end-to-end document-intelligence pipeline around that problem. It ingests court PDFs, extracts and cleans their text, divides the corpus into retrieval-sized passages, embeds those passages into a persistent vector database, retrieves evidence semantically, and supplies only the retrieved context to an LLM for a grounded answer.
 
 The result is closer to an **evidence-backed research interface** than a generic chatbot: retrieval happens before generation, answers are constrained to the indexed corpus, and source documents are returned with each response.
-
-## Product Interface
-
-The deployed frontend uses a custom investigative-record aesthetic rather than a stock chat UI. It provides a single-purpose query workflow designed around document interrogation and source-grounded retrieval.
-
-> Repository screenshot will be added under `docs/screenshots/archive-home.png` from the deployed application.
 
 ## System Architecture
 
@@ -54,7 +58,7 @@ The ingestion layer supports both text-native and scanned records:
 - falls back to page rasterization with `pdf2image`;
 - performs OCR with Tesseract;
 - preserves page boundaries in the extracted representation;
-- uses portable project-relative paths and an optional `POPPLER_PATH` environment variable.
+- uses project-relative paths and an optional `POPPLER_PATH` environment variable.
 
 ### 2. Corpus Cleaning & Chunking
 
@@ -74,7 +78,7 @@ The embedding stage is incremental: existing chunk IDs are detected and skipped 
 
 `backend/query.py`
 
-A query is embedded through the same ChromaDB collection used by the application. The system retrieves the highest-ranking passages together with source metadata and vector distance information.
+A query is sent through the same ChromaDB collection used by the application. The system retrieves the highest-ranking passages together with source metadata and vector-distance information.
 
 This separates **retrieval** from **generation**: the language model does not decide which documents are relevant by itself.
 
@@ -91,7 +95,7 @@ The FastAPI service exposes a `/ask` endpoint that:
 5. generates the response using **Llama 3.3 70B through Groq**;
 6. returns the answer, unique source-document names, and the retrieved passages.
 
-Generation uses a low temperature (`0.1`) to favour consistent, evidence-oriented responses.
+Generation uses a low temperature (`0.1`) to favor consistent, evidence-oriented responses.
 
 ## What Makes It More Than a Chatbot
 
@@ -102,9 +106,9 @@ Generation uses a low temperature (`0.1`) to favour consistent, evidence-oriente
 | Persistent knowledge base | ChromaDB vector storage |
 | Grounded generation | LLM receives retrieved court excerpts as context |
 | Source traceability | Source metadata returned with answers |
-| Retrieval transparency | API also returns the passages used for generation |
+| Retrieval transparency | API also returns passages used for generation |
 | Corpus isolation | Prompt explicitly prohibits outside information |
-| Full-stack delivery | FastAPI backend + deployed custom web interface |
+| Full-stack delivery | FastAPI backend + custom deployed web interface |
 
 ## Technology Stack
 
@@ -125,24 +129,29 @@ Generation uses a low temperature (`0.1`) to favour consistent, evidence-oriente
 ```text
 the-archive/
 ├── backend/
-│   ├── main.py             # FastAPI RAG API
-│   ├── ingest.py           # PDF extraction + OCR fallback
-│   ├── clean_text.py       # corpus normalization
-│   ├── chunk.py            # retrieval-sized passage generation
-│   ├── embed.py            # persistent ChromaDB indexing
-│   ├── query.py            # direct semantic retrieval test
-│   ├── database.py         # vector-store connection
+│   ├── main.py
+│   ├── ingest.py
+│   ├── clean_text.py
+│   ├── chunk.py
+│   ├── embed.py
+│   ├── query.py
+│   ├── database.py
 │   ├── requirements.txt
 │   └── render.yaml
 ├── data/
-│   ├── raw/                # source records
-│   ├── processed/          # extracted/cleaned text
-│   └── chunked/            # retrieval passages
+│   ├── raw/
+│   ├── processed/
+│   └── chunked/
+├── docs/
+│   └── screenshots/
 ├── frontend/
-│   ├── index.html          # deployed research interface
-│   └── bg.mp4              # interface visual asset
+│   ├── index.html
+│   └── bg.mp4
+├── .gitignore
 └── README.md
 ```
+
+Generated local artifacts such as `.env`, virtual environments, ChromaDB storage, raw PDFs, processed text, and chunk outputs are ignored for future commits.
 
 ## API Contract
 
@@ -172,8 +181,6 @@ Response shape:
 
 ## Local Setup
 
-### Backend
-
 ```bash
 git clone https://github.com/yyashikasharmaa/the-archive.git
 cd the-archive/backend
@@ -193,9 +200,9 @@ GROQ_API_KEY=your_key_here
 # POPPLER_PATH=C:\path\to\poppler\Library\bin
 ```
 
-For rebuilding the source corpus, install the ingestion dependencies (`pypdf`, `pdf2image`, `pytesseract`) and ensure Tesseract/Poppler are available on the host.
+Tesseract and Poppler must also be available on the host for scanned-PDF OCR.
 
-Run the preprocessing/indexing pipeline from `backend/`:
+To rebuild the corpus:
 
 ```bash
 python ingest.py
@@ -210,11 +217,9 @@ Start the API:
 uvicorn main:app --reload
 ```
 
-The frontend can then be served from `frontend/` and pointed at the API deployment.
-
 ## Engineering Decisions
 
-**Retrieval before generation.** The system searches the corpus first and gives the model only a small set of relevant passages. This reduces dependence on model memory and makes the answer auditable against retrieved evidence.
+**Retrieval before generation.** The system searches the corpus first and gives the model only a small set of relevant passages. This reduces dependence on model memory and makes answers auditable against retrieved evidence.
 
 **Direct extraction before OCR.** OCR is computationally expensive and can introduce recognition errors. Text-native PDFs therefore use direct parsing first, while OCR is reserved for documents that require it.
 
@@ -224,13 +229,19 @@ The frontend can then be served from `frontend/` and pointed at the API deployme
 
 **Source metadata at chunk level.** Every indexed passage carries its originating filename so the API can reconstruct source attribution after semantic retrieval.
 
+## Current Deployment Constraint
+
+The hosted version does **not** ship with the complete retrieval corpus/vector index. That choice reflects the storage and compute limits of the deployment environment used for the project.
+
+This means the public website should be treated as a live product-interface deployment rather than a continuously available production legal-search service. The RAG pipeline itself remains reproducible from the repository when the document corpus is supplied locally and the vector store is rebuilt.
+
 ## Limitations & Next Steps
 
-The current implementation is a focused portfolio-scale RAG system rather than a production legal-research platform. Natural extensions include reranking, page-level citations, hybrid BM25 + vector retrieval, automated RAG evaluation, streaming responses, authentication/rate limiting, and richer corpus metadata.
+The current implementation is a focused portfolio-scale RAG system rather than a production legal-research platform. Natural extensions include reranking, page-level citations, hybrid BM25 + vector retrieval, automated RAG evaluation, streaming responses, authentication/rate limiting, richer corpus metadata, and a deployment architecture capable of persisting the full index.
 
 ## Data & Responsible Use
 
-The project is designed around publicly released federal court records and is intended as a document-retrieval/research demonstration. Generated responses should be treated as navigation aids to the underlying records, not as independent factual or legal conclusions. Users should verify important claims against the cited source material.
+The project is designed around publicly released federal court records and is intended as a document-retrieval/research demonstration. Generated responses should be treated as navigation aids to the underlying records, not as independent factual or legal conclusions. Important claims should be verified against the source material.
 
 ## Author
 
